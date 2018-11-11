@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/url"
 	"os"
+	"regexp"
 
 	"github.com/apex/log"
 	"github.com/google/go-github/github"
@@ -94,12 +95,29 @@ func (c *githubClient) CreateRelease(ctx *context.Context, body string) (int64, 
 	if err != nil {
 		return 0, err
 	}
+
+	preRelease := false
+	// Check if we have to check the git tag for an indicator to mark as pre release
+	switch ctx.Config.Release.Prerelease {
+	case "auto":
+		preRelease, err = checkTagIfPrerelease(ctx.Git.CurrentTag)
+		if err != nil {
+			log.Errorf("Failed to check git tag for prerelease indicator: %s", err)
+		}
+	case "true":
+		preRelease = true
+	case "false":
+		preRelease = false
+	default:
+		log.Warnf("Invalied valid %s for prerelease. Should be auto, true or false")
+	}
+
 	var data = &github.RepositoryRelease{
 		Name:       github.String(title),
 		TagName:    github.String(ctx.Git.CurrentTag),
 		Body:       github.String(body),
 		Draft:      github.Bool(ctx.Config.Release.Draft),
-		Prerelease: github.Bool(ctx.Config.Release.Prerelease),
+		Prerelease: github.Bool(preRelease),
 	}
 	release, _, err = c.client.Repositories.GetReleaseByTag(
 		ctx,
@@ -144,4 +162,16 @@ func (c *githubClient) Upload(
 		file,
 	)
 	return err
+}
+
+func checkTagIfPrerelease(tag string) (bool, error) {
+	// Compile regex to check if we have a pre release like 0.0.1-rc1
+	rx, err := regexp.Compile(`-{1}((0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`)
+	if err != nil {
+		return false, err
+	}
+
+	matched := rx.MatchString(tag)
+	log.Debugf("Pre-Release was detected for tag %s: %v", tag, matched)
+	return matched, nil
 }
