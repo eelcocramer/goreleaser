@@ -100,10 +100,7 @@ func (c *githubClient) CreateRelease(ctx *context.Context, body string) (int64, 
 	// Check if we have to check the git tag for an indicator to mark as pre release
 	switch ctx.Config.Release.Prerelease {
 	case "auto":
-		preRelease, err = checkTagIfPrerelease(ctx.Git.CurrentTag)
-		if err != nil {
-			log.Errorf("Failed to check git tag for prerelease indicator: %s", err)
-		}
+		preRelease = checkTagIfPrerelease(ctx.Git.CurrentTag)
 	case "true":
 		preRelease = true
 	case "false":
@@ -164,14 +161,10 @@ func (c *githubClient) Upload(
 	return err
 }
 
-func checkTagIfPrerelease(tag string) (bool, error) {
+func checkTagIfPrerelease(tag string) bool {
 	// Compile regex to check if we have a pre release like 0.0.1-rc1
-	rx, err := regexp.Compile(`-{1}((0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`)
-	if err != nil {
-		return false, err
-	}
-
+	rx := regexp.MustCompile(`-{1}((0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`)
 	matched := rx.MatchString(tag)
 	log.Debugf("Pre-Release was detected for tag %s: %v", tag, matched)
-	return matched, nil
+	return matched
 }
