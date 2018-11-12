@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"net/url"
 	"os"
-	"regexp"
 
+	"github.com/Masterminds/semver"
 	"github.com/apex/log"
 	"github.com/google/go-github/github"
 	"github.com/goreleaser/goreleaser/internal/tmpl"
 	"github.com/goreleaser/goreleaser/pkg/config"
 	"github.com/goreleaser/goreleaser/pkg/context"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -100,10 +101,14 @@ func (c *githubClient) CreateRelease(ctx *context.Context, body string) (int64, 
 	// Check if we have to check the git tag for an indicator to mark as pre release
 	switch ctx.Config.Release.Prerelease {
 	case "auto":
-		// Regex used to check git tag if we have a pre released
-		prereleaseRegex := regexp.MustCompile(`-{1}((0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?(\+[0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*)?$`)
+		sv, err := semver.NewVersion(ctx.Git.CurrentTag)
+		if err != nil {
+			return 0, errors.Wrap(err, "Failed to parse tag as semver")
+		}
 
-		preRelease = prereleaseRegex.MatchString(ctx.Git.CurrentTag)
+		if sv.Prerelease() != "" {
+			preRelease = true
+		}
 		log.Debugf("Pre-Release was detected for tag %s: %v", ctx.Git.CurrentTag, preRelease)
 	case "true":
 		preRelease = true
