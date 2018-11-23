@@ -42,6 +42,7 @@ type Context struct {
 	RmDist       bool
 	Debug        bool
 	Parallelism  int
+	PreRelease   bool
 }
 
 // New context

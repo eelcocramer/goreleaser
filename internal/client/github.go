@@ -5,13 +5,11 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/Masterminds/semver"
 	"github.com/apex/log"
 	"github.com/google/go-github/github"
 	"github.com/goreleaser/goreleaser/internal/tmpl"
 	"github.com/goreleaser/goreleaser/pkg/config"
 	"github.com/goreleaser/goreleaser/pkg/context"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
 
@@ -97,33 +95,12 @@ func (c *githubClient) CreateRelease(ctx *context.Context, body string) (int64, 
 		return 0, err
 	}
 
-	preRelease := false
-	// Check if we have to check the git tag for an indicator to mark as pre release
-	switch ctx.Config.Release.Prerelease {
-	case "auto":
-		sv, err := semver.NewVersion(ctx.Git.CurrentTag)
-		if err != nil {
-			return 0, errors.Wrap(err, "Failed to parse tag as semver")
-		}
-
-		if sv.Prerelease() != "" {
-			preRelease = true
-		}
-		log.Debugf("Pre-Release was detected for tag %s: %v", ctx.Git.CurrentTag, preRelease)
-	case "true":
-		preRelease = true
-	case "false":
-		preRelease = false
-	default:
-		log.Warnf("Invalied valid %s for prerelease. Should be auto, true or false")
-	}
-
 	var data = &github.RepositoryRelease{
 		Name:       github.String(title),
 		TagName:    github.String(ctx.Git.CurrentTag),
 		Body:       github.String(body),
 		Draft:      github.Bool(ctx.Config.Release.Draft),
-		Prerelease: github.Bool(preRelease),
+		Prerelease: github.Bool(ctx.PreRelease),
 	}
 	release, _, err = c.client.Repositories.GetReleaseByTag(
 		ctx,
