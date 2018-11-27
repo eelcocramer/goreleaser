@@ -149,22 +149,30 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, "goreleaser", ctx.Config.Release.GitHub.Owner)
 }
 
-func TestDefaultPreRelease(t *testing.T) {
+func TestDefaultPreReleaseAuto(t *testing.T) {
 	_, back := testlib.Mktmp(t)
 	defer back()
 	testlib.GitInit(t)
 	testlib.GitRemoteAdd(t, "git@github.com:goreleaser/goreleaser.git")
 	testlib.GitCommit(t, "commit1")
-	testlib.GitTag(t, "1.0.0")
+	testlib.GitTag(t, "v1.0.0")
 
-	var ctx = context.New(config.Project{})
+	var ctx = context.New(config.Project{
+		Release: config.Release{
+			Prerelease: "auto",
+		},
+	})
 	assert.NoError(t, Pipe{}.Default(ctx))
 	assert.Equal(t, false, ctx.PreRelease)
 
 	testlib.GitCommit(t, "commit2")
-	testlib.GitTag(t, "1.0.1-rc1")
+	testlib.GitTag(t, "v1.0.1-rc1")
 
-	ctx = context.New(config.Project{})
+	ctx = context.New(config.Project{
+		Release: config.Release{
+			Prerelease: "auto",
+		},
+	})
 	assert.NoError(t, Pipe{}.Default(ctx))
 	assert.Equal(t, true, ctx.PreRelease)
 }

@@ -4,13 +4,13 @@ import (
 	"os"
 
 	"github.com/Masterminds/semver"
-	"github.com/pkg/errors"
 	"github.com/apex/log"
 	"github.com/goreleaser/goreleaser/internal/artifact"
 	"github.com/goreleaser/goreleaser/internal/client"
 	"github.com/goreleaser/goreleaser/internal/pipe"
 	"github.com/goreleaser/goreleaser/internal/semerrgroup"
 	"github.com/goreleaser/goreleaser/pkg/context"
+	"github.com/pkg/errors"
 )
 
 // Pipe for github release
@@ -40,7 +40,7 @@ func (Pipe) Default(ctx *context.Context) error {
 	case "auto":
 		sv, err := semver.NewVersion(ctx.Git.CurrentTag)
 		if err != nil {
-			return errors.Wrap(err, "Failed to parse tag as semver")
+			return errors.Wrapf(err, "Failed to parse tag %s as semver", ctx.Git.CurrentTag)
 		}
 
 		if sv.Prerelease() != "" {
@@ -52,7 +52,7 @@ func (Pipe) Default(ctx *context.Context) error {
 	case "false":
 		ctx.PreRelease = false
 	default:
-		log.Warnf("Invalied value %s for prerelease. Should be auto, true or false")
+		log.Warnf("Invalid value %s for prerelease. Should be auto, true or false")
 	}
 
 	return nil
