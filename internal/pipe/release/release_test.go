@@ -154,27 +154,28 @@ func TestDefaultPreReleaseAuto(t *testing.T) {
 	defer back()
 	testlib.GitInit(t)
 	testlib.GitRemoteAdd(t, "git@github.com:goreleaser/goreleaser.git")
-	testlib.GitCommit(t, "commit1")
-	testlib.GitTag(t, "v1.0.0")
 
-	var ctx = context.New(config.Project{
-		Release: config.Release{
-			Prerelease: "auto",
-		},
+	t.Run("auto-releaser", func(t *testing.T) {
+		var ctx = context.New(config.Project{
+			Release: config.Release{
+				Prerelease: "auto",
+			},
+		})
+		ctx.Git.CurrentTag = "v1.0.0"
+		assert.NoError(t, Pipe{}.Default(ctx))
+		assert.Equal(t, false, ctx.PreRelease)
 	})
-	assert.NoError(t, Pipe{}.Default(ctx))
-	assert.Equal(t, false, ctx.PreRelease)
 
-	testlib.GitCommit(t, "commit2")
-	testlib.GitTag(t, "v1.0.1-rc1")
-
-	ctx = context.New(config.Project{
-		Release: config.Release{
-			Prerelease: "auto",
-		},
+	t.Run("auto-rc", func(t *testing.T) {
+		var ctx = context.New(config.Project{
+			Release: config.Release{
+				Prerelease: "auto",
+			},
+		})
+		ctx.Git.CurrentTag = "v1.0.1-rc1"
+		assert.NoError(t, Pipe{}.Default(ctx))
+		assert.Equal(t, true, ctx.PreRelease)
 	})
-	assert.NoError(t, Pipe{}.Default(ctx))
-	assert.Equal(t, true, ctx.PreRelease)
 }
 
 func TestDefaultPipeDisabled(t *testing.T) {
